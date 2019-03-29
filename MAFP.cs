@@ -77,13 +77,13 @@ dict.TryGetValue(WarpToAnomalyDistance,out x);
 bool GoToUnload;
 bool UseMiningCrystal;
 string[] BaseOre = new[] {
-	"Dark Glitter", "Enriched Clear Icicle ", "Gelidus",
+	"Dark Glitter", "Clear Icicle", "Gelidus",
 	"Mercoxit", "Bistot", "Arkonor",
 	"Crokite", "Spodumain", "Ochre",
 	"Gneiss", "Hedbergite", "Hemorphite",
 	"Jaspet", "Kernite", "Omber",
 	"Plagioclase", "Pyroxeres",
-	"Massive Scordite", "Veldspar"
+	"Scordite", "Veldspar"
 	
 	};
 string[] ModifierOrePreference = new[] {
@@ -103,7 +103,7 @@ string[] ModifierOrePreference = new[] {
 	"Crimson Arkonor", "Prime Arkonor", "Flawless Arkonor",
 	"Triclinic Bistot", "Monoclinic Bistot", "Cubic Bistot",
 	"Magma Mercoxit", "Vitreous Mercoxit",
-	"Gelidus","Enriched Clear Icicle ","Dark Glitter","Glare Crust",
+	"Gelidus", "Icicle", "Dark Glitter", "Glare Crust",
 
 	
 	};
@@ -643,7 +643,8 @@ Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.
 		(entry?.MainIconIsRed ?? false)	&& (entry?.IsAttackingMe ?? false))
 		?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
 		?.ToArray();
-bool IhaveMinerModule => Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Any(module => (module?.TooltipLast?.Value?.IsMiner??false))?? false ;
+bool IhaveMinerModule => Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Any(module => !(module?.TooltipLast?.Value?.LabelText?.Any(
+		label => label?.Text?.RegexMatchSuccess("ice",System.Text.RegularExpressions.RegexOptions.IgnoreCase) ?? false )?? false ) && (module?.TooltipLast?.Value?.IsMiner??false))?? false ;
 bool IhaveICeModule => Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Any(module =>(module?.TooltipLast?.Value?.LabelText?.Any(
 		label => label?.Text?.RegexMatchSuccess("ice",System.Text.RegularExpressions.RegexOptions.IgnoreCase) ?? false )?? false ) || (module?.TooltipLast?.Value?.IsIceHarvester??false))?? false ;
 DroneViewEntryGroup DronesInBayListEntry =>
@@ -1029,6 +1030,7 @@ Parse.IOverviewEntry[] ListAsteroidOverviewEntry =>
 	WindowOverview?.ListView?.Entry
 	?.Where(entry => null != OreTypeFromAsteroidName(entry?.Name))
 	?.OrderByDescending(entry =>ModifiedOrePreference(entry?.Name))
+	?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
 	?.ToArray();
 bool AskedForProtection;
 string FleetCharFlagList => chatLocal?.ParticipantView?.Entry?.Where(fleetmember =>(fleetmember?.FlagIcon?.FirstOrDefault()?.HintText?.RegexMatchSuccessIgnoreCase("Pilot is in your fleet") ?? false) &&(fleetmember?.NameLabel?.Text?.RegexMatchSuccessIgnoreCase(FleetMate) ?? false)).ToArrayIfNotEmpty()?.FirstOrDefault()?.NameLabel.Text  ;
