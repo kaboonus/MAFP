@@ -22,6 +22,8 @@ using System.Linq;
 //	begin of configuration section ->
 string VersionScript = "M.A.F.P v1.1";//do not change
 //	Bookmark of location where ore should be unloaded.
+var SecurityLevel =  Measurement?.InfoPanelCurrentSystem?.SecurityLevelMilli;
+Host.Log( "Security Level: " +SecurityLevel/1000);
 bool DepositOre = false; // really important
 string UnloadBookmark = "home";
 string IgnoreNeutral = "xxxxx|wwwww"; //
