@@ -1076,7 +1076,7 @@ bool ProtectectedByfleetMate ()
 if (!(WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false) )
 Sanderling.MouseClickLeft(WindowFleet?.FirstOrDefault()?.LabelText?.Where(text =>text?.Text?.RegexMatchSuccessIgnoreCase("History") ?? false).FirstOrDefault());
 				
-if ((WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false)&& !AskedForProtection  &&  ListAsteroidOverviewEntry.Length>0   )
+if ((WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false)&& !AskedForProtection  &&  (0 < ListRatOverviewEntry?.Length)   )
 {
 	AskedForProtection =true;
 	Sanderling.KeyboardPress(VirtualKeyCode.VK_Z);
