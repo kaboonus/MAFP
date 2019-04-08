@@ -18,22 +18,23 @@ using System.IO;
 using System.Collections.Generic;
 using System;
 using System.Linq;
-
+//to change faster if you need
+bool DepositOre = false;
+bool UseToAllarm = false;
 //	begin of configuration section ->
 string VersionScript = "M.A.F.P v1.1";//do not change
 //	Bookmark of location where ore should be unloaded.
 var SecurityLevel =  Measurement?.InfoPanelCurrentSystem?.SecurityLevelMilli;
 Host.Log( "Security Level: " +SecurityLevel/1000);
-bool DepositOre = false; // really important
 string UnloadBookmark = "home";
 string IgnoreNeutral = "xxxxx|wwwww"; //
 //	Name of the container to unload to as shown in inventory.
 string UnloadDestContainerName = "Item Hangar";
 string FollowChiefName = "name of alt with rorqual";
-string UnloadDestFleetContainer = "Fleet Hangar";
+string UnloadDestFleetContainer = "Rorqual (Fleet Hangar)";
 string FollowShipType = "rorqual";
 //	when this is set to true, the bot will try to unload when undocked.
-string FleetMate = "nam of alt who protect you";
+string FleetMate = "name of alt who protect you";
 
 //	Bookmark of place to retreat to to prevent ship loss.
 string RetreatBookmark = UnloadBookmark;
@@ -56,7 +57,7 @@ string AnomalyToTakeColumnHeader = "name";
 string AnomalyToTake = "icicle|glacial|ice|glaze";
 string MiningTab = "logi";
 bool RetreatOnNeutralOrHostileInLocal;
-var EnterOffloadOreHoldFillPercent = 98;	//	percentage of ore hold fill level at which to enter the offload process.
+//var EnterOffloadOreHoldFillPercent = 98;	//	percentage of ore hold fill level at which to enter the offload process.
 if (SecurityLevel>500)
  RetreatOnNeutralOrHostileInLocal = false;
  else 
@@ -89,25 +90,22 @@ string[] BaseOre = new[] {
 	
 	};
 string[] ModifierOrePreference = new[] {
-	"Concentrated Veldspar", "Dense Veldspar", "Stable Veldspar",
-	"Condensed Scordite", "Massive Scordite", "Glossy Scordite",
-	"Solid Pyroxeres", "Viscous Pyroxeres", "Opulent Pyroxeres",
-	"Azure Plagioclase", "Rich Plagioclase", "Sparkling Plagioclase",
-	"Silvery Omber", "Golden Omber", "Platinoid Omber",
-	"Luminous Kernite", "Fiery Kernite", "Resplendant Kernite",
-	"Pure Jaspet", "Pristine Jaspet", "Immaculate Jaspet",
-	"Vivid Hemorphite", "Radiant Hemorphite", "Scintillating Hemorphite",
-	"Vitric Hedbergite", "Glazed Hedbergite", "Lustrous Hedbergite",
-	"Iridescent Gneiss", "Prismatic Gneiss", "Brilliant Gneiss",
-	"Onyx Ochre", "Obsidian Ochre", "Jet Ochre",
-	"Bright Spodumain", "Gleaming Spodumain", "Dazzling Spodumain",
-	"Sharp Crokite", "Crystalline Crokite", "Pellucid Crokite",
-	"Crimson Arkonor", "Prime Arkonor", "Flawless Arkonor",
-	"Triclinic Bistot", "Monoclinic Bistot", "Cubic Bistot",
-	"Magma Mercoxit", "Vitreous Mercoxit",
-	"Gelidus", "Icicle", "Dark Glitter", "Glare Crust",
+	"Crust", "Glitter", "Icicle", "Gelidus", "Blue Ice",
+	"Vitreous Mercoxit", "Magma Mercoxit", "Cubic Bistot",
+	"Monoclinic Bistot", "Triclinic Bistot", "Flawless Arkonor",
+	"Prime Arkonor", "Crimson Arkonor", "Pellucid Crokite", "Crystalline Crokite",
+	"Sharp Crokite", "Dazzling Spodumain", "Gleaming Spodumain", "Bright Spodumain",
+	"Jet Ochre", "Obsidian Ochre", "Onyx Ochre", "Brilliant Gneiss", "Prismatic Gneiss",
+	"Iridescent Gneiss", "Lustrous Hedbergite", "Glazed Hedbergite", "Vitric Hedbergite",
+	"Scintillating Hemorphite", "Radiant Hemorphite", "Vivid Hemorphite",
+	"Immaculate Jaspet", "Pristine Jaspet", "Pure Jaspet", "Resplendant Kernite",
+	"Fiery Kernite", "Luminous Kernite", "Platinoid Omber", "Golden Omber",
+	"Silvery Omber", "Sparkling Plagioclase", "Rich Plagioclase",
+	"Azure Plagioclase", "Opulent Pyroxeres", "Viscous Pyroxeres",
+	"Solid Pyroxeres", "Glossy Scordite", "Massive Scordite",
+	"Condensed Scordite", "Stable Veldspar", "Dense Veldspar", "Concentrated Veldspar",
 
-	
+
 	};
 string [] ModuleWithCrystal = new [] {
 "Modulated Deep Core Miner II", "Modulated Deep Core Miner II", "Modulated Strip Miner II",
@@ -143,6 +141,7 @@ Host.Log(" >  eveRealServerDT :  " +eveRealServerDT.ToString(" dd/MM/yyyy HH:mm:
 }
 var eveSafeDT = eveRealServerDT.AddHours(-hoursToDT).AddMinutes(-minutesToDT);
 Host.Log(" >  eveSafeDT : " +eveSafeDT.ToString(" dd/MM/yyyy HH:mm")+ " .");
+var FinishedMining = false;
 
 
 
@@ -219,10 +218,10 @@ bool	DefenseExit =>
 bool	DefenseEnter =>
 	!DefenseExit	||
 	!(DefenseEnterHitpointThresholdPercent < ShieldHpPercent);
-
+int EnterOffloadOreHoldFillPercent =>  (DepositOre && IamInFleet) ? 70 : 99;
 bool	OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
 
-Int64?	JammedLastTime = null;
+
 string RetreatReasonTemporary = null;
 string RetreatReasonPermanent = null;
 string RetreatReason => RetreatReasonPermanent ?? RetreatReasonTemporary ;
@@ -240,7 +239,7 @@ Func<object>	MainStep()
 	{
 		InInventoryUnloadItems();
 ;
-		if (logoutme)
+		if (logoutme || FinishedMining)
 			return BotStopActivity;
 
 		if (0 < RetreatReason?.Length)
@@ -416,7 +415,8 @@ Func<object> TakeAnomaly()
             if (null == scanResultCombatSite )
             {
                 Host.Log("               R2D2: no more anomalies! ");
-                WarpingSlow(RetreatBookmark, "dock");
+                FinishedMining = true;
+				WarpingSlow(RetreatBookmark, "dock");
             }
         }
     return MainStep;
@@ -431,9 +431,7 @@ for (int i=0; i<pp; i++)
     
 }
 public bool BackOnMainStep => (!ReadyForManeuver) || null != RetreatReason;
-public bool Approaching =>
-    Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel =>
-        (indicationLabel?.Text).RegexMatchSuccessIgnoreCase("approaching")) ?? false;
+
 //////////////////////////////
 /////////////////////////////
 bool ToUseMiningCrystal()
@@ -459,15 +457,15 @@ foreach (string moduleWithCrystal in ModuleWithCrystal)
 }
 Func<object> InBeltMineStep()
 {
-    if (BackOnMainStep)
+     if (BackOnMainStep || SpeedWarping)
         {
-        Host.Log("               tethering zone, not on site!");
+        Host.Log("                not on site!");
         return MainStep;
         }
 	Host.Log("in site belt");
 	if (DefenseEnter && !IamInFleet)
 	{
-		Host.Log("enter defense.");
+		Host.Log("in site belt, enter defense.");
 		WarpingSlow(RetreatBookmark, "dock");
 	}
 
@@ -494,7 +492,9 @@ Func<object> InBeltMineStep()
 		return MainStep;
 		}
 	// assigning  or mining
-	
+
+	if (UseToAllarm && ProtectectedByfleetMate ())
+	Console.Beep(1500, 200);
 	
 
 	
@@ -505,22 +505,23 @@ Func<object> InBeltMineStep()
 
 	Host.Log("asteroids near  :    "  +SetTargetAsteroid?.Length );
 	var moduleMinerInactive = SetModuleMinerInactive?.FirstOrDefault();
-	     	if (null == moduleMinerInactive)
+	if (null == moduleMinerInactive)
 	{
-		Host.Delay(7777);
+		Host.Delay(777);
 		return InBeltMineStep;
 	}
 	if (IhavegoodDrones && !(0 < DronesInSpaceCount))
 		LaunchDronesByLabelName(@LabelNameMiningDrones);
 
-	if(SetTargetAsteroid?.FirstOrDefault()?.DistanceMax > MiningRange &&!Approaching)
+	if(SetTargetAsteroid?.FirstOrDefault()?.DistanceMax > MiningRange &&!(Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel =>
+        (indicationLabel?.Text).RegexMatchSuccessIgnoreCase("approaching")) ?? false))
 	{
 ClickMenuEntryOnMenuRoot(SetTargetAsteroid?.FirstOrDefault(), "approach");
 }
 else 
 		{
 	Host.Log("close");
-        	if (Approaching)
+        	if ((SetTargetAsteroid?.FirstOrDefault()?.DistanceMax > MiningRange) &&   ( Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel => (indicationLabel?.Text).RegexMatchSuccessIgnoreCase("approaching")) ?? false))
         		Sanderling.KeyboardPressCombined(new[]{ lockTargetKeyCode, spacekey});
         			var	setTargetAsteroidInRange	=
 		SetTargetAsteroid?.Where(target => target?.DistanceMax <= MiningRange)?.ToArray();
@@ -558,29 +559,36 @@ else
 	{
 		//targeting
 		Host.Log("targeting");
-	var asteroidOverviewEntryNext = ListAsteroidOverviewEntry?.FirstOrDefault();
-	var asteroidOverviewEntryNextNotTargeted =ListAsteroidOverviewEntry?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
-string ListAsteroidsToPrint = String.Join(" ; ", ListAsteroidOverviewEntry.Select(entry =>entry?.Name));
+		var asteroidsInRange = ListAsteroidOverviewEntry?.Where( range => range?.DistanceMin <= MiningRange)?.OrderByDescending((entry => entry?.DistanceMax?? int.MaxValue))?.ToArray();
+	var asteroidOverviewEntryNext = asteroidsInRange?.FirstOrDefault();
+	if (0 < ListAsteroidOverviewEntry?.Length)
+	{string ListAsteroidsToPrint = String.Join(" ;  ", ListAsteroidOverviewEntry.Select(entry =>entry?.Name).Zip(ListAsteroidOverviewEntry.Select(entry =>entry?.DistanceMax), (l1, l2) => l1+ " at "+ l2));
+		Host.Log("ListAsteroidsToPrint:    "+ListAsteroidsToPrint);}
 
-		Host.Log("ListAsteroidsToPrint:    "+ListAsteroidsToPrint);
-	if(null == asteroidOverviewEntryNext)
+	if(!(0 < ListAsteroidOverviewEntry?.Length) ||!(0 < ListAllAsteroidOverviewEntry?.Length) )
 	{
-		Host.Log("no asteroid available");
-		return null;
+		Host.Log("no asteroids here");
+		
+		return MainStep;
 	}
 
 	if(!(asteroidOverviewEntryNext?.MeTargeting ?? false) || !(asteroidOverviewEntryNext?.MeTargeted ?? false))
 	{
-	if (!(asteroidOverviewEntryNextNotTargeted.DistanceMax < MiningRange))
+		Host.Log("no target");
+	if ( !(ListAsteroidOverviewEntry?.FirstOrDefault()?.DistanceMax < MiningRange) 
+		|| !(Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel =>
+        (indicationLabel?.Text).RegexMatchSuccessIgnoreCase("approaching")) ?? false) )
 	{
-		ClickMenuEntryOnMenuRoot(asteroidOverviewEntryNext, "approach");
+		Host.Log("closing to asteroid");
+		ClickMenuEntryOnMenuRoot(ListAsteroidOverviewEntry?.FirstOrDefault(), "approach");
 	}
 	else
 	{
-	        	if (Approaching)
+	        	if ( ListAsteroidOverviewEntry?.FirstOrDefault()?.DistanceMax < MiningRange)
         		Sanderling.KeyboardPressCombined(new[]{ lockTargetKeyCode, spacekey});
 		Host.Log("initiate lock asteroid");
-		ClickMenuEntryOnMenuRoot(asteroidOverviewEntryNextNotTargeted, "^lock");
+		if(asteroidOverviewEntryNext != null)
+		ClickMenuEntryOnMenuRoot(asteroidOverviewEntryNext, "^lock");
 	}
 	}
 
@@ -590,6 +598,8 @@ string ListAsteroidsToPrint = String.Join(" ; ", ListAsteroidOverviewEntry.Selec
 }
 /////////////////////
 ///////////////////
+public bool Tethering =>
+    Measurement?.ShipUi?.EWarElement?.Any(EwarElement => (EwarElement?.EWarType).RegexMatchSuccess("tethering")) ?? false;
 DroneViewEntryItem[] AllDrones => WindowDrones?.ListView?.Entry?.OfType<DroneViewEntryItem>()?.ToArray();
 bool IhavegoodDrones => WindowDrones != null ? ( AllDrones?.Any( name =>name?.LabelText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase(LabelNameMiningDrones)??false)??false) : false;
 public bool AnyDroneIdle =>AllDrones?.Any(drone =>drone?.LabelText?.FirstOrDefault()?.Text?.Contains("Idle") ?? false ) ?? false;
@@ -756,6 +766,12 @@ void InInventoryUnloadItemsTo(string DestinationContainerName)
 {
 	Host.Log("unload items to '" + DestinationContainerName + "'.");
 
+		var DestinationContainerLabelRegexPattern =
+			InventoryContainerLabelRegexPatternFromContainerName(DestinationContainerName);
+
+		var DestinationContainer =
+			WindowInventory?.LeftTreeListEntry?.SelectMany(entry => new[] { entry }.Concat(entry.EnumerateChildNodeTransitive()))
+			?.FirstOrDefault(entry => entry?.Text?.RegexMatchSuccessIgnoreCase(DestinationContainerLabelRegexPattern) ?? false);
 	EnsureWindowInventoryOpenOreHold();
 
 	for (;;)
@@ -770,18 +786,16 @@ void InInventoryUnloadItemsTo(string DestinationContainerName)
 		if(1 < oreHoldListItem?.Length)
 			ClickMenuEntryOnMenuRoot(oreHoldItem, @"select\s*all");
 
-		var DestinationContainerLabelRegexPattern =
-			InventoryContainerLabelRegexPatternFromContainerName(DestinationContainerName);
-
-		var DestinationContainer =
-			WindowInventory?.LeftTreeListEntry?.SelectMany(entry => new[] { entry }.Concat(entry.EnumerateChildNodeTransitive()))
-			?.FirstOrDefault(entry => entry?.Text?.RegexMatchSuccessIgnoreCase(DestinationContainerLabelRegexPattern) ?? false);
 
 		if (null == DestinationContainer)
 			Host.Log("error: Inventory entry labeled '" + DestinationContainerName + "' not found");
 
 		Sanderling.MouseDragAndDrop(oreHoldItem, DestinationContainer);
 	}
+	        Host.Delay(1111);
+        Sanderling.MouseClickLeft(DestinationContainer);
+        ClickMenuEntryOnMenuRoot(WindowInventory?.SelectedRightInventory?.ListView?.Entry?.FirstOrDefault(), @"stack all");
+        Host.Log("               Stack All in '" + UnloadDestContainerName+ "' .");
 }
 
 
@@ -817,6 +831,8 @@ void Undock()
 	}
 
 	Host.Delay(4444);
+	if (Tethering)
+		Sanderling.KeyboardPressCombined(new[]{ lockTargetKeyCode, spacekey});
 	Sanderling.InvalidateMeasurement();
 }
 
@@ -886,7 +902,7 @@ void ModuleToggle(Sanderling.Accumulation.IShipUiModule Module)
 
 void MemoryUpdate()
 {
-	ProtectectedByfleetMate ();
+	
 	RetreatUpdate();
 	
 	OffloadCountUpdate();
@@ -968,10 +984,10 @@ void DepositInFleetHangar()
 		var FleetContainer =
 			WindowInventory?.LeftTreeListEntry?.SelectMany(entry => new[] { entry }.Concat(entry.EnumerateChildNodeTransitive()))
 			?.FirstOrDefault(entry => entry?.Text?.RegexMatchSuccessIgnoreCase(FleetContainerLabelRegexPattern) ?? false);
-
+Host.Log(FleetContainer);
 		if (null == FleetContainer)
 		ClickMenuEntryOnMenuRoot(ListFollowShipOverviewEntry?.FirstOrDefault(), "open fleet hangar");
-		
+		EnsureWindowInventoryOpenOreHold();
     var RefillListItem = WindowInventory?.SelectedRightInventory?.ListView?.Entry
     ?.Where(entry => !(entry?.LabelText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("compressed") ?? false))
     ?.ToArray();
@@ -987,7 +1003,11 @@ void DepositInFleetHangar()
 }
 
 
-
+Parse.IOverviewEntry[] ListAllAsteroidOverviewEntry =>
+	WindowOverview?.ListView?.Entry
+	?.Where(entry => null != OreTypeFromAsteroidName(entry?.Name) )
+	?.ToArray();
+	
 
 bool KeepWithLeader =>
     Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel =>
@@ -1021,19 +1041,18 @@ string BaseOreFromAsteroidName(string asteroidName)
         return asteroidName.IndexOf(s, StringComparison.OrdinalIgnoreCase) > -1;
     });
 }
-	string ModifiedOrePreference(string asteroidName)
-{
-    return Array.Find<string>(ModifierOrePreference, (Predicate<string>)delegate (string s)
-    {
-        return asteroidName.IndexOf(s, StringComparison.OrdinalIgnoreCase) > -1;
-    });
-}
-Parse.IOverviewEntry[] ListAsteroidOverviewEntry =>
+int? MiningPriorityFromOverviewEntry(Parse.IOverviewEntry overviewEntry) =>
+	ModifierOrePreference?.FirstIndexOrNull(oreClass =>overviewEntry?.Name?.RegexMatchSuccessIgnoreCase(oreClass) ?? false );
+
+IGrouping<int?, Parse.IOverviewEntry>[] OverviewAsteroidEntriesGroupedByPriority =>
 	WindowOverview?.ListView?.Entry
-	?.Where(entry => null != OreTypeFromAsteroidName(entry?.Name))
-	?.OrderByDescending(entry =>ModifiedOrePreference(entry?.Name))
-	?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+	?.GroupBy(MiningPriorityFromOverviewEntry)
+	?.Where(group => group.Key != null)
+	?.OrderBy(group => group.Key)
 	?.ToArray();
+Parse.IOverviewEntry[] ListAsteroidOverviewEntry =>
+	OverviewAsteroidEntriesGroupedByPriority
+	?.FirstOrDefault()?.ToArray();
 bool AskedForProtection;
 string FleetCharFlagList => chatLocal?.ParticipantView?.Entry?.Where(fleetmember =>(fleetmember?.FlagIcon?.FirstOrDefault()?.HintText?.RegexMatchSuccessIgnoreCase("Pilot is in your fleet") ?? false) &&(fleetmember?.NameLabel?.Text?.RegexMatchSuccessIgnoreCase(FleetMate) ?? false)).ToArrayIfNotEmpty()?.FirstOrDefault()?.NameLabel.Text  ;
 int RandomInt() => new Random((int)Host.GetTimeContinuousMilli()).Next();
@@ -1069,20 +1088,23 @@ bool ProtectectedByfleetMate ()
 //	var WindowFleet =Sanderling?.MemoryMeasurement?.Value?.WindowStack?.Where(myfleet =>myfleet?.LabelText?.ElementAtOrDefault(1)?.Text?.RegexMatchSuccessIgnoreCase("my fleet") ??false);
 	var WindowFleet =Sanderling?.MemoryMeasurement?.Value?.WindowOther?.Where(myfleet =>myfleet?.LabelText?.ElementAtOrDefault(1)?.Text?.RegexMatchSuccessIgnoreCase("my fleet") ??false);
 
-		if ((Measurement?.IsDocked ?? false) || AskedForProtection || !(0 < ListRatOverviewEntry?.Length) || FleetCharFlagList == null || WindowFleet== null)
+		if ((Measurement?.IsDocked ?? false) || AskedForProtection || FleetCharFlagList == null || WindowFleet== null || !(0 < ListRatOverviewEntry?.Length) )
 		return false;
 
 
 if (!(WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false) )
 Sanderling.MouseClickLeft(WindowFleet?.FirstOrDefault()?.LabelText?.Where(text =>text?.Text?.RegexMatchSuccessIgnoreCase("History") ?? false).FirstOrDefault());
 				
-if ((WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false)&& !AskedForProtection  &&  (0 < ListRatOverviewEntry?.Length)   )
+if ((WindowFleet?.FirstOrDefault()?.ButtonText?.FirstOrDefault()?.Text?.RegexMatchSuccessIgnoreCase("Clear History")?? false)&& !AskedForProtection  && 0 < ListRatOverviewEntry?.Length  )
 {
+	
 	AskedForProtection =true;
+	Sanderling.MouseClickLeft(WindowFleet?.FirstOrDefault()?.LabelText?.ElementAtOrDefault(6));
+	Host.Delay(200);
 	Sanderling.KeyboardPress(VirtualKeyCode.VK_Z);
 	Host.Log("               Allarm for Asking protection");
 	Host.Delay(200);
-	//Sanderling.MouseClickLeft(WindowFleet?.FirstOrDefault()?.ButtonText?.Where(text =>text?.Text?.RegexMatchSuccessIgnoreCase("Clear History") ?? false).FirstOrDefault());
+	Sanderling.MouseClickLeft(WindowFleet?.FirstOrDefault()?.ButtonText?.Where(text =>text?.Text?.RegexMatchSuccessIgnoreCase("Clear History") ?? false).FirstOrDefault());
 return true;
 }
 return false;
