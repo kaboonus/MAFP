@@ -825,7 +825,8 @@ void Undock()
 	GoToUnload = false;
 	while(Measurement?.IsDocked ?? true)
 	{
-		Sanderling.MouseClickLeft(Measurement?.WindowStation?.FirstOrDefault()?.UndockButton);
+		Sanderling.MouseClickLeft(Measurement?.WindowStation?.FirstOrDefault()?.ButtonText?.FirstOrDefault(undock =>undock?.Text?.RegexMatchSuccessIgnoreCase("Repair Station")??false  ));
+                    
 		Host.Log("waiting for undocking to complete.");
 		Host.Delay(8000);
 	}
